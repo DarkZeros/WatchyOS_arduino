@@ -1,0 +1,15 @@
+[submodule "json"]
+	path = json
+	url = https://github.com/nlohmann/json
+[submodule "radipjson"]
+	path = rapidjson
+	url = https://github.com/Tencent/rapidjson
+[submodule "sol2"]
+	path = sol2
+	url = https://github.com/ThePhD/sol2
+[submodule "lua"]
+	path = lua
+	url = https://github.com/DarkZeros/lua
+[submodule "luacpp"]
+	path = luacpp
+	url = https://github.com/jordanvrtanoski/luacpp
