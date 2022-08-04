@@ -51,12 +51,12 @@ constexpr std::string_view kDefaultData = R""""({
 })"""";
 
 constexpr std::string_view kDefaultWatchFace = R""""({
-    "_fonts":{
+    "__fonts__":{
         "A": 3
     },
     "elena" : {
         "type": "text",
-        "text": "{Hola Elena}",
+        "text": "{Hola Elenas :)}",
         "x": 10,
         "y": 10
     },

@@ -18,10 +18,6 @@
 #include <map>
 
 struct JsonOpt {
-    /*std::map<>
-    static const Json& mConfig, mFace;
-    static Json& mData;*/
-
     tl::optional<const Json&> mOpt;
 
     using Section = std::pair<size_t, size_t>;
@@ -91,6 +87,11 @@ struct JsonOpt {
         return {tl::nullopt};
     }
 
+    const Json& value_or(const Json& def) const {
+        if (!mOpt.has_value())
+            return def;
+        return *mOpt;
+    }
     const bool& bool_or(const bool& def) const {
         if (!mOpt.has_value())
             return def;

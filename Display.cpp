@@ -11,10 +11,17 @@ RTC_DATA_ATTR bool kDisplayFullInit = true;
 
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> Display::display(GxEPD2_154_D67(CS, DC, RESET, BUSY));
 
+static void busyCallBack(const void *) {
+    gpio_wakeup_enable((gpio_num_t)BUSY, GPIO_INTR_LOW_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+    esp_light_sleep_start();
+}
+
 void Display::init() {
     //std::unique_lock<std::mutex> lock(mMutex);
     if (!mInit) {
-        display.init(0, kDisplayFullInit, 10, true);
+        display.init(/*115200*/0, kDisplayFullInit, 10, true);
+        display.epd2.setBusyCallback(busyCallBack);
         mInit = true;
     }
 }
@@ -49,11 +56,12 @@ void Display::render() {
         V,
         H
     };
-    std::function<void(const Json& cur, Rect r, ListType)> traverse = 
-    [&](const Json& cur, Rect r, ListType list){
+
+    std::function<void(const JsonOpt&, Rect, ListType)> traverse = 
+    [&](const JsonOpt& cur, Rect r, ListType list){
         int16_t xTotal = 0;
         int16_t yTotal = 0;
-        for (auto& [k, val] : cur.items()) {
+        for (auto& [k, val] : cur.value_or(Json()).items()) {
             if (k.c_str()[0] == '_')
                 continue;
             auto v = JsonOpt{{val}};
@@ -124,6 +132,7 @@ void Display::render() {
                 display.setTextColor(color);
                 if (text && text.is_string()) {
                     display.print(text.mOpt->get_ref<const std::string&>().c_str());
+                    display.print(kCounter++);
                 }
             }
 
@@ -133,14 +142,14 @@ void Display::render() {
             if (list == ListType::H)
                 r.l += size;
 
-            /*if (v.contains("sub")) {
+            if (v["sub"]) {
                 auto subRect = r;
                 subRect.l += 20;
-                traverse(v["sub"], subRect);
-            }*/
+                traverse(v["sub"], subRect, ListType::V);
+            }
         }
     };
-    traverse(*render.mOpt, {0, display.height(), 0, display.width()}, ListType::V);
+    traverse(render, {0, display.height(), 0, display.width()}, ListType::V);
 
 
     /*if (json.contains("tree"))
