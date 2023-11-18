@@ -24,6 +24,7 @@ struct JsonOpt {
     using SectionVec = std::vector<Section>;
     
     void resolveJsonPointer() const {
+        return;
         // Check if the object refers to another to replace it here
         if (!is_string())
             return;

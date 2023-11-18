@@ -15,7 +15,7 @@
 
 #include "Database.h"
 
-extern RTC_DATA_ATTR bool kDisplayFullInit;
+RTC_DATA_ATTR bool kDisplayFullInit;
 
 struct Rect {
     int16_t t, b, l, r;

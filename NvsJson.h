@@ -12,7 +12,6 @@
 
 class NvsJson : public JsonBacked {
     std::string mPath;
-    //nvs_handle mNvsHandle;
 
 public:
     static tl::optional<NvsJson> create(const std::string& path, bool ignoreChanges, std::string_view def = {})

@@ -2,12 +2,18 @@
 #include "Display.h"
 #include "NvsJson.h"
 
-#define CS 5
-#define DC 10
-#define RESET 9
-#define BUSY 19
+#include <thread>
 
-RTC_DATA_ATTR bool kDisplayFullInit = true;
+#define CS 5 // Same // SS
+#define DC 18 // GPIO10-Pin29
+#define RESET 23 // GPIO9-PIN28
+#define BUSY 19 // Same
+// GPIO9-SD2-pin28 // MOSI GPIO23-pin36
+// GPIO10-SD3-pin29 // SCK  GPIO18-pin35
+
+int kCounter = 0;
+
+bool kDisplayFullInit = true;
 
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> Display::display(GxEPD2_154_D67(CS, DC, RESET, BUSY));
 
@@ -20,17 +26,17 @@ static void busyCallBack(const void *) {
 void Display::init() {
     //std::unique_lock<std::mutex> lock(mMutex);
     if (!mInit) {
-        display.init(/*115200*/0, kDisplayFullInit, 10, true);
-        display.epd2.setBusyCallback(busyCallBack);
         mInit = true;
+        display.init(115200, kDisplayFullInit, 10, true, SPI, SPISettings(20000000, MSBFIRST, SPI_MODE0));
+        // SPI.begin(10, -1, 9, 5);
+        display.epd2.setBusyCallback(busyCallBack);
     }
 }
 
-static Json asd = "muajajajaa";
-//static JsonBacked asd2 = {{"muajajajaa2"}};
-
 void Display::render() {
     //std::unique_lock<std::mutex> lock(mMutex);
+    // We need to init, if we haven't done it yet
+    init();
 
     // get from the DB the nodes we need
     auto config = mDB.get("config");
@@ -43,12 +49,10 @@ void Display::render() {
     const auto backColor = !inverted ? GxEPD_WHITE : GxEPD_BLACK;
 
     // Clear previous content
-    display.epd2.darkBorder = inverted;
-    init();
+    display.epd2.darkBorder = true;
     display.fillScreen(backColor);
-
+    
     // Check if we have fonts
-
 
     // For each element recursively traverse
     enum class ListType {
@@ -56,6 +60,9 @@ void Display::render() {
         V,
         H
     };
+
+    Serial.printf("Start ");
+    Serial.println(micros()); Serial.flush();
 
     std::function<void(const JsonOpt&, Rect, ListType)> traverse = 
     [&](const JsonOpt& cur, Rect r, ListType list){
@@ -71,21 +78,23 @@ void Display::render() {
             if (!type || !type.is_string())
                 continue;
 
+            auto typeStr = v["type"].mOpt->get<std::string>();
+
             // get sizes, and common params
-            auto x = v["x"].int_or(0);
-            auto y = v["y"].int_or(0);
-            auto w = v["w"].int_or(1);
-            auto h = v["h"].int_or(1);
+            const auto x = v["x"].int_or(0);
+            const auto y = v["y"].int_or(0);
+            const auto w = v["w"].int_or(1);
+            const auto h = v["h"].int_or(1);
             auto size = v["size"].int_or(-1);
-            auto fill = v["fill"].bool_or(false);
-            auto cInt = v["color"].int_or(-1);
-            auto color = cInt == -1 ? foreColor : cInt == 0 ? GxEPD_BLACK : GxEPD_WHITE;
+            const auto fill = v["fill"].bool_or(false);
+            const auto cInt = v["color"].int_or(-1);
+            const auto color = cInt == -1 ? foreColor : cInt == 0 ? GxEPD_BLACK : GxEPD_WHITE;
 
             // For each type specific
-            if (type == "circ") {
-                auto rad = v["r"].int_or(std::min(x, y));
-                auto q = v["q"].int_or(0xF);
-                auto d = v["d"].int_or(0);
+            if (typeStr == "circ") {
+                const auto rad = v["r"].int_or(std::min(x, y));
+                const auto q = v["q"].int_or(0xF);
+                const auto d = v["d"].int_or(0);
                 if (size < 0) {
                     if (list == ListType::V)
                         size = y + rad;
@@ -93,6 +102,8 @@ void Display::render() {
                         size = x + rad;
                 }
 
+                //std::async(std::launch::async, [&](){
+                std::thread([&](){
                 if (fill) {
                     if (q == 0xF)
                         display.fillCircle(r.l + x, r.t + y, rad, color);
@@ -105,7 +116,8 @@ void Display::render() {
                         display.drawCircleHelper(r.l + x, r.t + y, rad, q, color);
                     }
                 }
-            } else if (type == "rect") {
+                }).detach();
+            } else if (typeStr == "rect") {
                 if (size < 0) {
                     if (list == ListType::V)
                         size = y + h;
@@ -117,7 +129,7 @@ void Display::render() {
                     display.fillRect(r.l + x, r.t + y, w, h, color);
                 else
                     display.drawRect(r.l + x, r.t + y, w, h, color);
-            } else if (type == "bitmap") {
+            } else if (typeStr == "bitmap") {
                 auto data = v["data"];
                 auto jsd = Json::binary({0xCA, 0xFE, 0xBA, 0xBE}, 23);
                 //if (data && data.mOpt->is_binary())
@@ -125,7 +137,7 @@ void Display::render() {
                 if (data && jsd.is_binary())
                     display.drawBitmap(r.l + x, r.t + y, jsd.get_binary().data(), w, h, color);
                 
-            }  else if (type == "text") {
+            }  else if (typeStr == "text") {
                 auto text = v["text"];
                 display.setCursor(r.l + x, r.t + y);
                 //display.setFont();
@@ -147,11 +159,14 @@ void Display::render() {
                 subRect.l += 20;
                 traverse(v["sub"], subRect, ListType::V);
             }
+
+            Serial.printf("Rendered %s ", typeStr.c_str());
+            Serial.println(micros()); Serial.flush();
         }
     };
     traverse(render, {0, display.height(), 0, display.width()}, ListType::V);
-
-
+    
+    
     /*if (json.contains("tree"))
         traverse(json["tree"], )
     for (auto& i : json) {
@@ -168,9 +183,14 @@ void Display::render() {
         }
     }*/
 
+    Serial.print("Pre-Update ");
+    Serial.println(micros()); Serial.flush();
+
     display.display(!kDisplayFullInit);
     kDisplayFullInit = false;
 
+    Serial.print("Updated ");
+    Serial.println(micros()); Serial.flush();
 
     display.hibernate();
     }

@@ -2,14 +2,19 @@
 #include "Arduino.h"
 #include "Watchy.h"
 
-Watchy kWatchy;
+//#include <Watchy_7_SEG.h>
+//watchySettings setting;
+//Watchy7SEG watchy7seg(setting);
+
+Watchy watchy;
 
 void setup(){
     Serial.begin(115200);
 }
 
 void loop(){
-    kWatchy.loop();
+    //watchy7seg.init();
+    watchy.loop();
 }
 /*
 
