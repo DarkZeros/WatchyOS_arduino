@@ -1,21 +1,34 @@
+#define ARDUINO_WATCHY_V10
 
-#include "Arduino.h"
-#include "Watchy.h"
+#include "Watchy_7_SEG.h"
+#include "settings.h"
 
-//#include <Watchy_7_SEG.h>
-//watchySettings setting;
-//Watchy7SEG watchy7seg(setting);
-
-Watchy watchy;
+Watchy7SEG watchy(settings);
 
 void setup(){
-    Serial.begin(115200);
+    watchy.init();
 }
 
 void loop(){
-    //watchy7seg.init();
-    watchy.loop();
 }
+
+// #include "Arduino.h"
+// #include "Watchy.h"
+
+// //#include <Watchy_7_SEG.h>
+// //watchySettings setting;
+// //Watchy7SEG watchy7seg(setting);
+
+// Watchy watchy;
+
+// void setup(){
+//     Serial.begin(115200);
+// }
+
+// void loop(){
+//     //watchy7seg.init();
+//     watchy.loop();
+// }
 /*
 
 //file: main.cpp

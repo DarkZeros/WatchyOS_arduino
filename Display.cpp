@@ -2,6 +2,8 @@
 #include "Display.h"
 #include "NvsJson.h"
 
+#include "driver/gpio.h"
+
 #include <thread>
 
 #define CS 5 // Same // SS
@@ -12,8 +14,6 @@
 // GPIO10-SD3-pin29 // SCK  GPIO18-pin35
 
 int kCounter = 0;
-
-bool kDisplayFullInit = true;
 
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> Display::display(GxEPD2_154_D67(CS, DC, RESET, BUSY));
 

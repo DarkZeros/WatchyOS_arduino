@@ -1,6 +1,7 @@
 
 #pragma once
 
+#define ARDUINO_WATCHY_V10
 #include "Config.h"
 #include "Database.h"
 #include "Display.h"
